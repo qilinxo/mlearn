@@ -5,7 +5,7 @@ Created on Nov 14, 2017
 '''
 import numpy as np
 import mLearnHelper as mh
-import learn.logistic.regressHelper as helper
+import regressHelper as helper
 import random
 import datetime
 
