@@ -9,13 +9,13 @@ import mLearnHelper as ml
 import regressHelper as rh
 
 def __slelectJByRandom(i, m):
-    rangeList = list(range(i, m+1))
+    rangeList = list(range(i, m))
     j = random.choice(rangeList)
     return j
 
-def svmSmo(dataSet, labelVector, maxIter, C):
+def svmSmo(dataSet, labelVector, maxIter, C, toler):
     dataMatrix = np.mat(dataSet)
-    labelMatrix = np.mat(labelVector).transpose()
+    labelMatrix = np.mat(labelVector)
     b = 0
     m, n = np.shape(dataMatrix)
     a = np.zeros((1, m))
@@ -26,23 +26,23 @@ def svmSmo(dataSet, labelVector, maxIter, C):
         H = 0.0
         for i in range(m):
             # fxi
-            fxi = float(np.multiply(a.T, labelMatrix) * dataMatrix * dataMatrix[i, :]) + b
+            fxi = float(np.multiply(a, labelMatrix) * (dataMatrix * dataMatrix[i, :].T)) + b
             ei = fxi - labelVector[i]
-            if a[i] < C and a[i] > 0:
+            if (labelMatrix[0,i]*ei > -toler and a[0][i] < C) or (labelMatrix[0,i]*ei < toler and a[0][i] > 0):
                 j = __slelectJByRandom(i, m)
-                fxj = float(np.multiply(a.T, labelMatrix) * dataMatrix * dataMatrix[j, :]) + b
+                fxj = float(np.multiply(a, labelMatrix) * (dataMatrix * dataMatrix[j].T)) + b
                 ej = fxj - labelVector[j]
-                aiOld = a[i].copy()
-                ajOld = a[j].copy()
-                if labelMatrix[i] != labelMatrix[j]:
-                    L = max(0, a[j] - a[i])
-                    H = min(C, C + a[j] - a[i])
+                aiOld = a[0,i].copy()
+                ajOld = a[0,j].copy()
+                if labelMatrix[0,i] != labelMatrix[0,j]:
+                    L = max(0, a[0,j] - a[0,i])
+                    H = min(C, C + a[0,j] - a[0,i])
                 else:
-                    L = max(0, a[j] - a[i] - C)
-                    H = min(C, a[j] - a[i])
+                    L = max(0, a[0,j] - a[0,i] - C)
+                    H = min(C, a[0,j] - a[0,i])
             # eta
-                eta = dataMatrix[i] * dataMatrix[1] + dataMatrix[j] * dataMatrix[j] + 2 * dataMatrix[i] * dataMatrix[j]
-                ajNewTemp = ajOld + labelMatrix[j][0] * (ei - ej) / eta
+                eta = dataMatrix[i] * dataMatrix[1].T + dataMatrix[j] * dataMatrix[j].T + 2 * dataMatrix[i] * dataMatrix[j].T
+                ajNewTemp = ajOld + labelMatrix[0, j] * (ei - ej) / eta
             # decide a2 new
                 ajNew = 0.0
                 if ajNewTemp > H:
@@ -51,18 +51,16 @@ def svmSmo(dataSet, labelVector, maxIter, C):
                     ajNew = L
                 else:
                     ajNew = ajNewTemp
-                a[j] = ajNew
+                a[0,j] = ajNew
             # a1new
-                aiNew = aiOld + labelMatrix[i][0] * labelMatrix[j][0] * (ajOld - a[j])
-                a[i] = aiNew
+                aiNew = aiOld + labelMatrix[0,i] * labelMatrix[0,j].T * (ajOld - a[0,j])
+                a[0,i] = aiNew
             # b
-                b1New = 0 - ei - labelMatrix[i][0] * dataMatrix[i] * dataMatrix[i] * (a[i] - aiOld) - \
-                labelMatrix[j][0] * dataMatrix[j] * dataMatrix[i] * (a[j] - ajOld) + b
-                b2New = 0 - ej - labelMatrix[i][0] * dataMatrix[i] * dataMatrix[j] * (a[i] - aiOld) - \
-                labelMatrix[j][0] * dataMatrix[j] * dataMatrix[2] * (a[j] - ajOld) + b
-                if a[i] > 0 and a[i] < C:
+                b1New = 0 - ei - labelMatrix[0,i] * dataMatrix[i] * dataMatrix[i].T * (a[0,i] - aiOld) - labelMatrix[0,j] * dataMatrix[j] * dataMatrix[i].T * (a[0,j] - ajOld) + b
+                b2New = 0 - ej - labelMatrix[0,i] * dataMatrix[i] * dataMatrix[j].T * (a[0,i] - aiOld) - labelMatrix[0,j] * dataMatrix[j] * dataMatrix[j].T * (a[0,j] - ajOld) + b
+                if a[0,i] > 0 and a[0,i] < C:
                     b = b1New
-                elif a[j] > 0 and a[j] < C:
+                elif a[0,j] > 0 and a[0,j] < C:
                     b = b2New
                 else:
                     b = (b1New + b2New) / 2
@@ -71,7 +69,8 @@ def svmSmo(dataSet, labelVector, maxIter, C):
             iter += 1
         else:
             iter = 0
-    return a, b
+    w = np.multiply(a , labelMatrix) * dataMatrix
+    return w[0,:].tolist(), b.tolist()
 
 if __name__ == '__main__':
     dataMatrix = np.random.random((100, 2)).tolist()
@@ -83,7 +82,9 @@ if __name__ == '__main__':
         else:
             labelVector[i] = 0
     print(dataMatrix, labelVector)
-    exeTime, resultSet = ml.timeSpend(svmSmo, dataMatrix, labelVector, 10, 0.1)
-    weight = resultSet[1].extend(resultSet[0])
-    rh.regressDrawer(weight, dataMatrix, labelVector)
+    exeTime, resultSet = ml.timeSpend(svmSmo, dataMatrix, labelVector, 10, 0.1, 0.1)
+    x = []
+    x.append(resultSet[1])
+    x.extend(resultSet[0])
+    rh.regressDrawer(x, dataMatrix, labelVector)
     
