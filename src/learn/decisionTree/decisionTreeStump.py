@@ -5,26 +5,12 @@ Created on Dec 8, 2017
 '''
 import numpy as np
 from math import inf
-
-def falseRate(labelOri, labelResult):
-    labelSize = len(labelOri)
-    trueSize = 0
-    falseSize = 0
-    if labelSize == len(labelResult):
-        for i in range(labelSize):
-            if labelOri[i] == labelResult[i]:
-                trueSize += 1
-            else:
-                falseSize += 1
-        return float(trueSize / falseSize)
-    else:
-        return -1
     
 def chooseBestProp(dataSet, labelSet, D):
     dataMatrix = np.array(dataSet)
     labelMatrix = np.array(labelSet).T
     m, n = np.shape(dataMatrix)
-    minError = inf
+    minWeightError = inf
     bestStump = {}
     for i in n:
         steps = 10.0
@@ -36,20 +22,24 @@ def chooseBestProp(dataSet, labelSet, D):
             goStepTo = minVal + j * stepSize
             prodictVector = np.ones((m, 1))
             for childT in ['lt', 'rt']:
-                if childT == 'lt':
-                    prodictVector[dataMatrix[:, j] <= goStepTo] = -1.0
-                else:
-                    prodictVector[dataMatrix[:, j] >= goStepTo] = -1.0
+                prodictVector = stumpClassify(dataSet, j, goStepTo, childT)
                 errorVector = np.ones((m, 1))
                 errorVector[prodictVector == labelMatrix] = 0.0
                 weightError = D.T * errorVector
-                if minError > weightError:
-                    minError = weightError
+                if minWeightError > weightError:
+                    minWeightError = weightError
                     bestDividVector = prodictVector.copy()
                     bestStump['prop'] = i
                     bestStump['divideVal'] = goStepTo
                     bestStump['childTree'] = childT
-    return bestStump, bestDividVector, minError
+    return bestStump, bestDividVector, minWeightError
                     
-                
-        
+def stumpClassify(dataSet, prop, divideVal, childTree):
+    dataMatrix = np.mat(dataSet)
+    m, n = np.shape(dataMatrix)
+    prodictVector = np.ones((m, 1))
+    if childTree == 'lt':
+        prodictVector[dataMatrix[:, prop] <= divideVal] = -1.0
+    else:
+        prodictVector[dataMatrix[:, prop] >= divideVal] = -1.0
+    return prodictVector
