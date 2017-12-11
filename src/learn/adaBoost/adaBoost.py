@@ -9,15 +9,15 @@ import math
 
 def __calFalseRate(labelOri, labelResult):
     labelSize = len(labelOri)
-    trueSize = 0
     falseSize = 0
     if labelSize == len(labelResult):
         for i in range(labelSize):
-            if labelOri[i] == labelResult[i]:
-                trueSize += 1
-            else:
+            if labelOri[i] != labelResult[i]:
                 falseSize += 1
-        return float(trueSize / falseSize)
+        if falseSize == 0:
+            return 0.000001
+        else:
+            return float(falseSize / labelSize)
     else:
         return -1
     
@@ -27,8 +27,8 @@ def __calAlpha(fRate):
     
 def adaBoostProcessor(dataSet, labelSet):
     m,n = np.shape((dataSet))
-    labelMatrix = np.mat(np.array(labelSet).T)
-    D = np.mat(np.ones(m, 1))
+    labelMatrix = np.mat(labelSet).T
+    D = np.mat(np.ones((m, 1)))
     fRate = math.inf
     alpha = math.inf
     bestStump = {}
@@ -42,10 +42,15 @@ def adaBoostProcessor(dataSet, labelSet):
         fRate = __calFalseRate(labelSet, bestDividVector)
         alpha = __calAlpha(fRate)
         bestStump['alpha'] = alpha
-        D[bestDividVector == labelMatrix] = D[bestDividVector == labelMatrix] * (math.e**(-alpha)) / sumD
-        D[bestDividVector != labelMatrix] = D[bestDividVector != labelMatrix] * (math.e**(alpha)) / sumD
+        for lineNo in range(np.shape(D)[0]):
+            if bestDividVector[lineNo] == labelMatrix[lineNo]:
+                D[lineNo] = D[lineNo] * (math.e**(-alpha)) / sumD
+            else:
+                D[lineNo] = D[lineNo] * (math.e**(alpha)) / sumD
+        #D[np.mat(bestDividVector) == labelMatrix] = D[np.mat(bestDividVector) == labelMatrix] * (math.e**(-alpha)) / sumD
+        #D[np.mat(bestDividVector) != labelMatrix] = D[np.mat(bestDividVector) != labelMatrix] * (math.e**(alpha)) / sumD
         result.append(bestStump)
-        if fRate - 0.0 < 0.0000001:
+        if fRate - 0.0 < 0.0001:
             break
         times += 1
     print(times)
@@ -62,5 +67,11 @@ def adaBoostClassify(dataSet, labelSet, targetSet):
         resultVector = resultVector + dict['alpha'] * prodictVector
         print(resultVector)
     return np.sign(resultVector)
+
+if __name__ == '__main__':
+    dataSet = [[0.1, 0.2],[0.2, 0.1],[0.3, 0.1],[0.2, 0.3],[0.7, 0.8],[0.9, 0.6],[0.8, 0.8],[0.7, 0.7]]
+    labelSet = [1,1,1,1,-1,-1,-1,-1]
+    result = adaBoostClassify(dataSet, labelSet, [[0.1, 0.1]])
+    print(result)
         
     
