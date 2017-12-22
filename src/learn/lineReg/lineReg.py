@@ -22,7 +22,7 @@ def ridgeReg(dataSet, labelSet, alpha):
     n = np.shape(dataMatrix)[1]
     xtx = np.dot(dataMatrix.T, dataMatrix)
     aeye = np.eye(n,n)
-    xtx = xtx + aeye
+    xtx = xtx + aeye*alpha
     w = np.dot(np.dot(xtx*-1, dataMatrix.T), labelMatrix.T)
     return w
 
